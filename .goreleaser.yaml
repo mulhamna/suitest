@@ -1,0 +1,64 @@
+version: 2
+
+before:
+  hooks:
+    - go mod tidy
+
+builds:
+  - env:
+      - CGO_ENABLED=0
+    goos:
+      - linux
+      - darwin
+      - windows
+    goarch:
+      - amd64
+      - arm64
+    ignore:
+      - goos: windows
+        goarch: arm64
+    main: .
+    binary: suitest
+    ldflags:
+      - -s -w -X github.com/mulhamna/suitest/cmd.version={{.Version}}
+
+archives:
+  - format: tar.gz
+    name_template: "{{ .ProjectName }}_{{ .Os }}_{{ .Arch }}"
+    format_overrides:
+      - goos: windows
+        format: zip
+
+checksum:
+  name_template: "checksums.txt"
+
+changelog:
+  sort: asc
+  filters:
+    exclude:
+      - "^docs:"
+      - "^test:"
+      - "^chore:"
+
+brews:
+  - name: suitest
+    repository:
+      owner: mulhamna
+      name: homebrew-tap
+      token: "{{ .Env.GORELEASER_TOKEN }}"
+    homepage: "https://github.com/mulhamna/suitest"
+    description: "AI-powered testing agent CLI — provider-agnostic"
+    license: "MIT"
+    install: |
+      bin.install "suitest"
+    test: |
+      system "#{bin}/suitest", "--version"
+
+scoops:
+  - repository:
+      owner: mulhamna
+      name: scoop-bucket
+      token: "{{ .Env.GORELEASER_TOKEN }}"
+    homepage: "https://github.com/mulhamna/suitest"
+    description: "AI-powered testing agent CLI — provider-agnostic"
+    license: MIT

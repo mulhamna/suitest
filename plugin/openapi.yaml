@@ -1,0 +1,199 @@
+openapi: "3.0.0"
+info:
+  title: Suitest API
+  description: AI-powered testing agent API
+  version: "1.0.0"
+servers:
+  - url: http://localhost:3100
+paths:
+  /run:
+    post:
+      operationId: runTests
+      summary: Run AI-powered tests on a project path
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [path]
+              properties:
+                path:
+                  type: string
+                  description: Project root path
+                mode:
+                  type: string
+                  enum: [auto, browser, api, unit]
+                  default: auto
+                provider:
+                  type: string
+                  description: AI provider name
+                model:
+                  type: string
+                  description: Model name/slug
+                fix:
+                  type: boolean
+                  default: false
+                dry_run:
+                  type: boolean
+                  default: false
+                max_retries:
+                  type: integer
+                  default: 3
+                concurrency:
+                  type: integer
+                  default: 4
+      responses:
+        "200":
+          description: Test run result
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RunResult"
+  /plan:
+    post:
+      operationId: getTestPlan
+      summary: Generate test plan without executing
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [path]
+              properties:
+                path:
+                  type: string
+                provider:
+                  type: string
+                model:
+                  type: string
+      responses:
+        "200":
+          description: Test plan
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TestPlan"
+  /report:
+    get:
+      operationId: getReport
+      summary: Get the latest test report
+      parameters:
+        - name: format
+          in: query
+          schema:
+            type: string
+            enum: [json, markdown, terminal]
+            default: json
+      responses:
+        "200":
+          description: Latest test report
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RunResult"
+  /fix:
+    post:
+      operationId: applyFix
+      summary: Apply AI fix to a failing test file
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [file, error]
+              properties:
+                file:
+                  type: string
+                  description: Path to the failing test file
+                error:
+                  type: string
+                  description: Error output from the test runner
+                provider:
+                  type: string
+                model:
+                  type: string
+      responses:
+        "200":
+          description: Fix result
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  fixed:
+                    type: boolean
+                  message:
+                    type: string
+  /init:
+    post:
+      operationId: initProject
+      summary: Initialize suitest in a project
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [path]
+              properties:
+                path:
+                  type: string
+      responses:
+        "200":
+          description: Init result
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  config_path:
+                    type: string
+components:
+  schemas:
+    TestResult:
+      type: object
+      properties:
+        name:
+          type: string
+        passed:
+          type: boolean
+        error:
+          type: string
+        duration_ms:
+          type: integer
+        retries:
+          type: integer
+    RunResult:
+      type: object
+      properties:
+        total:
+          type: integer
+        passed:
+          type: integer
+        failed:
+          type: integer
+        duration_ms:
+          type: integer
+        results:
+          type: array
+          items:
+            $ref: "#/components/schemas/TestResult"
+    TestPlan:
+      type: object
+      properties:
+        tests:
+          type: array
+          items:
+            type: object
+            properties:
+              name:
+                type: string
+              description:
+                type: string
+              mode:
+                type: string

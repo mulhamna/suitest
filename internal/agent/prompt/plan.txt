@@ -1,0 +1,39 @@
+You are analyzing a {{.Language}} project to generate a comprehensive test plan.
+
+Project summary: {{.Summary}}
+Test mode: {{.Mode}}
+Total source files: {{.FileCount}}
+
+Source files:
+{{.Files}}
+
+Generate a test plan as a JSON array. Each test case should have:
+- name: short, descriptive PascalCase name (e.g., "TestUserLogin")
+- description: one sentence describing what this test verifies
+- mode: "{{.Mode}}"
+- target: the file path or URL to test
+
+Guidelines:
+- Generate 3-8 meaningful test cases
+- Focus on critical paths: happy path, error handling, edge cases
+- For "unit" mode: target specific source files
+- For "api" mode: target specific HTTP endpoints
+- For "browser" mode: target specific user flows
+
+Respond ONLY with a valid JSON array. No markdown, no explanation.
+
+Example:
+[
+  {
+    "name": "TestHappyPath",
+    "description": "Verify that the main functionality works with valid input",
+    "mode": "{{.Mode}}",
+    "target": "main.go"
+  },
+  {
+    "name": "TestErrorHandling",
+    "description": "Verify that errors are handled gracefully",
+    "mode": "{{.Mode}}",
+    "target": "main.go"
+  }
+]

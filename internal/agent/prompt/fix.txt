@@ -1,0 +1,19 @@
+You are fixing failing test code. Analyze the failures and produce corrected test code.
+
+Test name: {{.TestName}}
+Mode: {{.Mode}}
+Language: {{.Language}}
+
+Original test code:
+{{.TestCode}}
+
+Failure details:
+{{.Failures}}
+
+Instructions:
+1. Analyze each failure carefully
+2. Identify the root cause (wrong assertion, missing import, incorrect API usage, etc.)
+3. Fix the test code to resolve all failures
+4. Do not change what the test is testing — only fix the implementation
+5. Ensure all imports and dependencies are correct
+6. Return ONLY the fixed test code with no explanation or markdown fences

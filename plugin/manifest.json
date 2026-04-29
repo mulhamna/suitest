@@ -1,0 +1,12 @@
+{
+  "schema_version": "v1",
+  "name_for_human": "Suitest",
+  "name_for_model": "suitest",
+  "description_for_human": "Run AI-powered tests on your codebase from Claude.",
+  "description_for_model": "Use suitest to generate and run tests on a software project. You can run tests, get reports, and apply fixes.",
+  "auth": { "type": "none" },
+  "api": {
+    "type": "openapi",
+    "url": "http://localhost:3100/openapi.yaml"
+  }
+}

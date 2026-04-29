@@ -1,0 +1,11 @@
+Summarize the following test run results in 2-3 sentences. Focus on:
+1. Overall pass/fail status
+2. Any patterns in failures
+3. Recommended next steps
+
+Test results:
+{{.Results}}
+
+Total: {{.Total}} tests, {{.Passed}} passed, {{.Failed}} failed.
+
+Respond with a concise plain-text summary (no markdown, no bullet points).
