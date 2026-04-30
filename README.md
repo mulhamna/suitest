@@ -239,3 +239,5 @@ go build -o suitest .
 ## License
 
 MIT
+
+Release smoke test for release-please.
