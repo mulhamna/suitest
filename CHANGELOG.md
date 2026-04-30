@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.0.1](https://github.com/mulhamna/suitest/compare/v1.0.0...v1.0.1) (2026-04-30)
+
+
+### Bug Fixes
+
+* **ci:** repair release pipeline and add PR validation ([a66d07d](https://github.com/mulhamna/suitest/commit/a66d07dec614a9270bf3170850057995259512ca))
+* **ci:** run goreleaser from release workflow ([ee6ebd8](https://github.com/mulhamna/suitest/commit/ee6ebd8353ba10718f901eb36780e20968429991))
+
 ## 1.0.0 (2026-04-30)
 
 
