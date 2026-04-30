@@ -2,7 +2,7 @@
 
 > AI-powered testing agent CLI — provider-agnostic, no lock-in, no subscription.
 
-suitest automatically generates, executes, and debugs tests for your project — frontend, backend, and API. Bring your own AI provider: Claude, OpenAI, OpenRouter, Ollama, or any OpenAI-compatible endpoint.
+suitest automatically generates, executes, and debugs tests for your project — frontend, backend, and API. Bring your own AI provider: Claude, OpenAI, OpenRouter, Ollama, Claude Code CLI, Codex CLI, Gemini CLI, or any OpenAI-compatible endpoint.
 
 ---
 
@@ -39,6 +39,10 @@ Grab the latest release from [GitHub Releases](https://github.com/mulhamna/suite
 ```bash
 # Configure your provider
 export ANTHROPIC_API_KEY=sk-ant-...   # or OPENAI_API_KEY, OPENROUTER_API_KEY
+# or use a logged-in CLI provider:
+# suitest run . --provider claude-cli
+# suitest run . --provider codex-cli
+# suitest run . --provider gemini-cli
 
 # Initialize in your project
 suitest init
@@ -51,13 +55,16 @@ suitest run .
 
 ## Providers
 
-suitest auto-detects your provider from environment variables:
+suitest auto-detects your provider from environment variables or available logged-in CLIs:
 
 | Env var | Provider |
 |---|---|
-| `ANTHROPIC_API_KEY` | Claude (Anthropic) |
+| `ANTHROPIC_API_KEY` | Claude (Anthropic API) |
+| Claude Code CLI available | Claude Code CLI |
 | `OPENAI_API_KEY` | OpenAI |
 | `OPENROUTER_API_KEY` | OpenRouter |
+| Codex CLI available | Codex CLI |
+| Gemini CLI available | Gemini CLI |
 | Ollama on localhost | Ollama (local) |
 
 Override with `--provider` and `--model`:
@@ -95,7 +102,7 @@ suitest run . --fix              # auto-apply AI fixes to source
 | Flag | Default | Description |
 |---|---|---|
 | `--mode` | auto | `auto`, `browser`, `api`, `unit` |
-| `--provider` | auto | `claude`, `openai`, `openrouter`, `ollama` |
+| `--provider` | auto | `claude`, `claude-cli`, `codex-cli`, `gemini-cli`, `openai`, `openrouter`, `ollama` |
 | `--model` | provider default | Model name/slug |
 | `--base-url` | provider default | Custom OpenAI-compatible endpoint |
 | `--fix` | false | Auto-apply AI-suggested fixes |
@@ -159,10 +166,22 @@ Project-level override at `.suitest.yaml`:
 
 ```yaml
 mode: browser
-provider: claude
+provider: claude-cli
 entry_url: http://localhost:3000
 test_dir: ./tests
 ```
+
+## No API key mode
+
+If a user is already logged into a local coding CLI, suitest can use that auth instead of direct API keys:
+
+```bash
+suitest run . --provider claude-cli
+suitest run . --provider codex-cli
+suitest run . --provider gemini-cli
+```
+
+This is useful when users already work through Claude Code, Codex CLI, or Gemini CLI and do not want to manage separate API keys.
 
 ---
 

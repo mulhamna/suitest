@@ -8,6 +8,9 @@ func Default() *Config {
 			"claude": {
 				Model: "claude-sonnet-4-20250514",
 			},
+			"claude-cli": {
+				Model: "claude-sonnet-4-20250514",
+			},
 			"openai": {
 				Model:   "gpt-4o",
 				BaseURL: "https://api.openai.com/v1",
@@ -19,6 +22,12 @@ func Default() *Config {
 			"ollama": {
 				Model:   "llama3",
 				BaseURL: "http://localhost:11434/v1",
+			},
+			"codex-cli": {
+				Model: "",
+			},
+			"gemini-cli": {
+				Model: "",
 			},
 		},
 		Agent: AgentConfig{

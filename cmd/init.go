@@ -65,10 +65,13 @@ func runInit(cmd *cobra.Command, args []string) error {
 	fmt.Println()
 	fmt.Println("Next steps:")
 	fmt.Println("  1. Set your provider in ~/.suitest/config.yaml")
-	fmt.Println("     Or set environment variables:")
-	fmt.Println("       ANTHROPIC_API_KEY for Claude")
+	fmt.Println("     Or use one of these auth paths:")
+	fmt.Println("       ANTHROPIC_API_KEY for Claude API")
 	fmt.Println("       OPENAI_API_KEY for OpenAI")
 	fmt.Println("       OPENROUTER_API_KEY for OpenRouter")
+	fmt.Println("       claude-cli if Claude Code CLI is installed and logged in")
+	fmt.Println("       codex-cli if Codex CLI is installed and logged in")
+	fmt.Println("       gemini-cli if Gemini CLI is installed and logged in")
 	fmt.Println("  2. Run: suitest run .")
 
 	home, _ := os.UserHomeDir()
@@ -84,6 +87,13 @@ providers:
   claude:
     api_key: "${ANTHROPIC_API_KEY}"
     model: claude-sonnet-4-20250514
+
+  claude-cli:
+    model: claude-sonnet-4-20250514
+
+  codex-cli: {}
+
+  gemini-cli: {}
 
   openai:
     api_key: "${OPENAI_API_KEY}"
