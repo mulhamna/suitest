@@ -20,4 +20,4 @@ jobs:
         id: release
         with:
           release-type: go
-          token: ${{ secrets.PAT_GITHUB_TOKEN }}
+          token: ${{ secrets.GITHUB_TOKEN }}
