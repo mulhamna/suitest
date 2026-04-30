@@ -23,3 +23,5 @@
 
 * **ci:** use github token and add CLI-backed providers ([5c9d9fd](https://github.com/mulhamna/suitest/commit/5c9d9fda10b380d2d3d9aa618a5ba262f3d356e5))
 * **ci:** use github token for release workflows ([de7e964](https://github.com/mulhamna/suitest/commit/de7e964ff71dda874a24d24e1c0983d6c33c97f9))
+
+Release smoke test note.
