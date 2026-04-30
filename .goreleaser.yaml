@@ -42,6 +42,7 @@ changelog:
 
 brews:
   - name: suitest
+    directory: Formula
     repository:
       owner: mulhamna
       name: homebrew-tap
@@ -55,7 +56,8 @@ brews:
       system "#{bin}/suitest", "--version"
 
 scoops:
-  - repository:
+  - directory: bucket
+    repository:
       owner: mulhamna
       name: scoop-bucket
       token: "{{ .Env.GORELEASER_TOKEN }}"
