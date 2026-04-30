@@ -18,8 +18,8 @@ var rootCmd = &cobra.Command{
 	Long: `suitest is an open-source AI-powered testing agent that automatically
 generates, executes, and debugs tests for your project.
 
-Provider-agnostic: works with Claude, OpenAI, OpenRouter, Ollama, or any
-OpenAI-compatible provider.`,
+Provider-agnostic: works with Claude, Claude Code CLI, Codex CLI, Gemini CLI,
+OpenAI, OpenRouter, Ollama, or any OpenAI-compatible provider.`,
 	Version: version,
 }
 
@@ -35,7 +35,7 @@ func init() {
 	cobra.OnInitialize(initConfig)
 
 	rootCmd.PersistentFlags().StringVar(&cfgFile, "config", "", "config file (default: ~/.suitest/config.yaml)")
-	rootCmd.PersistentFlags().String("provider", "auto", "AI provider: auto, claude, openai, openrouter, ollama")
+	rootCmd.PersistentFlags().String("provider", "auto", "AI provider: auto, claude, claude-cli, codex-cli, gemini-cli, openai, openrouter, ollama")
 	rootCmd.PersistentFlags().String("model", "", "Model name/slug (uses provider default if not set)")
 	rootCmd.PersistentFlags().String("base-url", "", "Custom OpenAI-compatible base URL")
 

@@ -4,13 +4,16 @@ suitest is provider-agnostic. Configure your preferred AI provider in `~/.suites
 
 ## Auto-detection
 
-If `--provider` is not set, suitest detects from environment:
+If `--provider` is not set, suitest detects from environment and available local CLIs:
 
 | Env var | Provider |
 |---|---|
 | `ANTHROPIC_API_KEY` | claude |
+| Claude Code CLI available | claude-cli |
 | `OPENAI_API_KEY` | openai |
 | `OPENROUTER_API_KEY` | openrouter |
+| Codex CLI available | codex-cli |
+| Gemini CLI available | gemini-cli |
 | Ollama on localhost:11434 | ollama |
 
 ## Claude (Anthropic)
@@ -24,6 +27,46 @@ providers:
 
 ```bash
 suitest run . --provider claude
+```
+
+## Claude Code CLI
+
+Use an existing Claude Code login instead of an API key.
+
+```yaml
+providers:
+  claude-cli:
+    model: claude-sonnet-4-20250514
+```
+
+```bash
+suitest run . --provider claude-cli
+```
+
+## Codex CLI
+
+Use an existing Codex CLI login instead of an API key.
+
+```yaml
+providers:
+  codex-cli: {}
+```
+
+```bash
+suitest run . --provider codex-cli
+```
+
+## Gemini CLI
+
+Use an existing Gemini CLI login instead of an API key.
+
+```yaml
+providers:
+  gemini-cli: {}
+```
+
+```bash
+suitest run . --provider gemini-cli
 ```
 
 ## OpenAI
@@ -80,6 +123,20 @@ Any OpenAI-compatible API works via `--base-url`:
 ```bash
 suitest run . --provider openai --base-url https://my-endpoint.com/v1 --model my-model
 ```
+
+## Notes on CLI-backed providers
+
+CLI-backed providers shell out to the local authenticated tool in non-interactive mode.
+
+Current behavior:
+- `claude-cli` uses `claude --print --permission-mode bypassPermissions`
+- `codex-cli` uses `codex exec`
+- `gemini-cli` uses `gemini --prompt`
+
+Tradeoffs:
+- simpler onboarding for users without API keys
+- depends on the local CLI being installed and logged in
+- output shape can be less predictable than raw API integrations
 
 ## Adding a new provider
 
