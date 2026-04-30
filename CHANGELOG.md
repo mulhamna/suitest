@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.0.2](https://github.com/mulhamna/suitest/compare/v1.0.1...v1.0.2) (2026-04-30)
+
+
+### Bug Fixes
+
+* release smoke test ([438026a](https://github.com/mulhamna/suitest/commit/438026adcb10d0f161a383ceced02ffc8d49b2d1))
+* release smoke test ([f993989](https://github.com/mulhamna/suitest/commit/f993989f17c4e079e88b16ff0a40ddf21e505608))
+
 ## [1.0.1](https://github.com/mulhamna/suitest/compare/v1.0.0...v1.0.1) (2026-04-30)
 
 
