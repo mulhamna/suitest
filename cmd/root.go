@@ -47,6 +47,10 @@ func init() {
 	rootCmd.AddCommand(initCmd)
 	rootCmd.AddCommand(reportCmd)
 	rootCmd.AddCommand(serveCmd)
+	rootCmd.AddCommand(targetCmd)
+	rootCmd.AddCommand(scenarioCmd)
+	rootCmd.AddCommand(settingsCmd)
+	rootCmd.AddCommand(tuiCmd)
 }
 
 func initConfig() {
