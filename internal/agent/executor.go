@@ -109,6 +109,10 @@ Description: %s
 Mode: %s
 Project language: %s
 Target: %s
+Target type: %s
+Entry URL: %s
+Sample curl: %s
+Expected success flow: %s
 
 Project files:
 %s
@@ -126,6 +130,7 @@ Requirements:
 
 Respond with ONLY the test code (no explanation, no markdown fences).`,
 		plan.Name, plan.Description, plan.Mode, discovery.Language, plan.Target,
+		discovery.TargetType, discovery.EntryURL, discovery.SeedCurl, discovery.Expectation,
 		strings.Join(discovery.Files, "\n"), discovery.Language)
 
 	messages := []providers.Message{

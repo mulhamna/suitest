@@ -15,6 +15,8 @@ type Config struct {
 	DefaultProvider string                     `yaml:"default_provider"`
 	Providers       map[string]*ProviderConfig `yaml:"providers"`
 	Agent           AgentConfig                `yaml:"agent"`
+	Storage         StorageConfig              `yaml:"storage"`
+	Operator        OperatorConfig             `yaml:"operator"`
 
 	// Project-level fields (from .suitest.yaml)
 	Mode     string `yaml:"mode"`
@@ -40,6 +42,17 @@ type AgentConfig struct {
 	MaxRetries  int  `yaml:"max_retries"`
 	Concurrency int  `yaml:"concurrency"`
 	AutoFix     bool `yaml:"auto_fix"`
+}
+
+// StorageConfig holds report persistence preferences.
+type StorageConfig struct {
+	Driver string `yaml:"driver"`
+	Path   string `yaml:"path,omitempty"`
+}
+
+// OperatorConfig holds how suitest should invoke AI.
+type OperatorConfig struct {
+	Mode string `yaml:"mode"`
 }
 
 // Load loads and merges the global config (~/.suitest/config.yaml)
@@ -93,6 +106,15 @@ func (c *Config) GetProviderConfig(name string) *ProviderConfig {
 func mergeGlobal(dst, src *Config) {
 	if src.DefaultProvider != "" {
 		dst.DefaultProvider = src.DefaultProvider
+	}
+	if src.Storage.Driver != "" {
+		dst.Storage.Driver = src.Storage.Driver
+	}
+	if src.Storage.Path != "" {
+		dst.Storage.Path = src.Storage.Path
+	}
+	if src.Operator.Mode != "" {
+		dst.Operator.Mode = src.Operator.Mode
 	}
 	if src.Providers != nil {
 		for k, v := range src.Providers {
@@ -159,4 +181,21 @@ func SaveReport(data []byte) error {
 		return fmt.Errorf("could not create dir: %w", err)
 	}
 	return os.WriteFile(filepath.Join(dir, "last-report.json"), data, 0644)
+}
+
+// SaveGlobal writes the config to ~/.suitest/config.yaml.
+func SaveGlobal(cfg *Config) error {
+	home, err := os.UserHomeDir()
+	if err != nil {
+		return fmt.Errorf("could not find home dir: %w", err)
+	}
+	dir := filepath.Join(home, ".suitest")
+	if err := os.MkdirAll(dir, 0755); err != nil {
+		return fmt.Errorf("could not create dir: %w", err)
+	}
+	data, err := yaml.Marshal(cfg)
+	if err != nil {
+		return fmt.Errorf("could not marshal config: %w", err)
+	}
+	return os.WriteFile(filepath.Join(dir, "config.yaml"), data, 0644)
 }

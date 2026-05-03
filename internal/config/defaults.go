@@ -35,6 +35,12 @@ func Default() *Config {
 			Concurrency: 4,
 			AutoFix:     false,
 		},
+		Storage: StorageConfig{
+			Driver: "json",
+		},
+		Operator: OperatorConfig{
+			Mode: "native",
+		},
 		Mode:    "auto",
 		Output:  "terminal",
 		TestDir: "./tests",

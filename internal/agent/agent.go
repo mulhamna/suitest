@@ -9,9 +9,9 @@ import (
 	"sync"
 	"time"
 
-	"github.com/mulhamna/suitest/internal/config"
 	"github.com/mulhamna/suitest/internal/providers"
 	"github.com/mulhamna/suitest/internal/runners"
+	"github.com/mulhamna/suitest/internal/storage"
 )
 
 // Config holds agent configuration.
@@ -23,28 +23,35 @@ type Config struct {
 	Concurrency int
 	AutoFix     bool
 	DryRun      bool
+	TargetName  string
+	TargetType  string
+	EntryURL    string
+	SeedCurl    string
+	Expectation string
+	Plans       []TestPlan
 }
 
 // TestResult holds the result for a single planned test.
 type TestResult struct {
-	Plan    TestPlan           `json:"plan"`
+	Plan    TestPlan            `json:"plan"`
 	Results []runners.RunResult `json:"results"`
-	Passed  bool               `json:"passed"`
-	Retries int                `json:"retries"`
+	Passed  bool                `json:"passed"`
+	Retries int                 `json:"retries"`
 }
 
 // RunResult is the overall result of an agent run.
 type RunResult struct {
-	StartedAt   time.Time    `json:"started_at"`
-	FinishedAt  time.Time    `json:"finished_at"`
-	Path        string       `json:"path"`
-	Mode        string       `json:"mode"`
-	Provider    string       `json:"provider"`
-	Tests       []TestResult `json:"tests"`
-	TotalTests  int          `json:"total_tests"`
-	Passed      int          `json:"passed"`
-	Failed      int          `json:"failed"`
-	DryRun      bool         `json:"dry_run"`
+	RunID      string       `json:"run_id"`
+	StartedAt  time.Time    `json:"started_at"`
+	FinishedAt time.Time    `json:"finished_at"`
+	Path       string       `json:"path"`
+	Mode       string       `json:"mode"`
+	Provider   string       `json:"provider"`
+	Tests      []TestResult `json:"tests"`
+	TotalTests int          `json:"total_tests"`
+	Passed     int          `json:"passed"`
+	Failed     int          `json:"failed"`
+	DryRun     bool         `json:"dry_run"`
 }
 
 // Agent orchestrates the full test generation and execution loop.
@@ -72,6 +79,7 @@ func New(cfg Config) *Agent {
 // Run executes the full agent loop and returns a RunResult.
 func (a *Agent) Run(ctx context.Context) (*RunResult, error) {
 	result := &RunResult{
+		RunID:     time.Now().Format("20060102-150405"),
 		StartedAt: time.Now(),
 		Path:      a.cfg.Path,
 		Mode:      a.cfg.Mode,
@@ -81,17 +89,33 @@ func (a *Agent) Run(ctx context.Context) (*RunResult, error) {
 
 	// Step 1: Discover project
 	fmt.Printf("\nDiscovering project at %s...\n", a.cfg.Path)
-	discovery, err := discoverProject(a.cfg.Path)
+	discovery, err := DiscoverProject(a.cfg.Path)
 	if err != nil {
 		return nil, fmt.Errorf("project discovery failed: %w", err)
+	}
+	discovery.TargetName = a.cfg.TargetName
+	discovery.TargetType = a.cfg.TargetType
+	discovery.EntryURL = a.cfg.EntryURL
+	discovery.SeedCurl = a.cfg.SeedCurl
+	discovery.Expectation = a.cfg.Expectation
+	if discovery.Expectation != "" {
+		discovery.Summary = fmt.Sprintf("%s | expected flow: %s", discovery.Summary, discovery.Expectation)
+	}
+	if discovery.EntryURL != "" {
+		discovery.Summary = fmt.Sprintf("%s | url: %s", discovery.Summary, discovery.EntryURL)
 	}
 	fmt.Printf("Project summary: %s\n", discovery.Summary)
 
 	// Step 2: Generate test plan
-	fmt.Println("\nGenerating test plan via LLM...")
-	plans, err := a.planner.Plan(ctx, discovery, a.cfg.Mode)
-	if err != nil {
-		return nil, fmt.Errorf("test planning failed: %w", err)
+	plans := a.cfg.Plans
+	if len(plans) == 0 {
+		fmt.Println("\nGenerating test plan via LLM...")
+		plans, err = a.planner.Plan(ctx, discovery, a.cfg.Mode)
+		if err != nil {
+			return nil, fmt.Errorf("test planning failed: %w", err)
+		}
+	} else {
+		fmt.Println("\nUsing saved scenario set...")
 	}
 	fmt.Printf("Generated %d test cases\n", len(plans))
 
@@ -146,7 +170,7 @@ func (a *Agent) Run(ctx context.Context) (*RunResult, error) {
 
 	// Save report
 	data, _ := json.Marshal(result)
-	config.SaveReport(data)
+	storage.SaveReport(data)
 
 	return result, nil
 }
@@ -165,15 +189,20 @@ func buildRunner(mode, path string) runners.Runner {
 
 // ProjectDiscovery holds information about the discovered project.
 type ProjectDiscovery struct {
-	Path     string
-	Language string
-	Framework string
-	Files    []string
-	Summary  string
+	Path        string
+	Language    string
+	Framework   string
+	Files       []string
+	Summary     string
+	TargetName  string
+	TargetType  string
+	EntryURL    string
+	SeedCurl    string
+	Expectation string
 }
 
-// discoverProject walks the project directory to understand its structure.
-func discoverProject(root string) (*ProjectDiscovery, error) {
+// DiscoverProject walks the project directory to understand its structure.
+func DiscoverProject(root string) (*ProjectDiscovery, error) {
 	d := &ProjectDiscovery{Path: root}
 
 	// Walk directory for key files

@@ -4,15 +4,13 @@ import (
 	"context"
 	"fmt"
 	"os"
-	"path/filepath"
 
 	"github.com/mulhamna/suitest/internal/agent"
+	"github.com/mulhamna/suitest/internal/catalog"
 	"github.com/mulhamna/suitest/internal/config"
 	"github.com/mulhamna/suitest/internal/providers"
 	"github.com/mulhamna/suitest/internal/report"
-	"github.com/mulhamna/suitest/internal/runners"
 	"github.com/spf13/cobra"
-	"github.com/spf13/viper"
 )
 
 var runCmd = &cobra.Command{
@@ -31,98 +29,50 @@ func init() {
 	runCmd.Flags().String("output", "terminal", "Output format: terminal, json, markdown")
 	runCmd.Flags().Int("max-retries", 3, "Maximum fix retry attempts per test")
 	runCmd.Flags().Int("concurrency", 4, "Number of parallel test runners")
-
-	viper.BindPFlag("mode", runCmd.Flags().Lookup("mode"))
-	viper.BindPFlag("fix", runCmd.Flags().Lookup("fix"))
-	viper.BindPFlag("dry_run", runCmd.Flags().Lookup("dry-run"))
-	viper.BindPFlag("output", runCmd.Flags().Lookup("output"))
-	viper.BindPFlag("agent.max_retries", runCmd.Flags().Lookup("max-retries"))
-	viper.BindPFlag("agent.concurrency", runCmd.Flags().Lookup("concurrency"))
+	runCmd.Flags().String("target", "", "Saved target name to run")
+	runCmd.Flags().String("scenario-set", "", "Scenario set name for saved target runs")
+	runCmd.Flags().Bool("yes", false, "Skip saved target confirmation prompt")
 }
 
 func runTests(cmd *cobra.Command, args []string) error {
-	targetPath := "."
-	if len(args) > 0 {
-		targetPath = args[0]
-	}
-
-	absPath, err := filepath.Abs(targetPath)
-	if err != nil {
-		return fmt.Errorf("invalid path: %w", err)
-	}
-
-	if _, err := os.Stat(absPath); os.IsNotExist(err) {
-		return fmt.Errorf("path does not exist: %s", absPath)
-	}
-
-	// Load config
 	cfg, err := config.Load()
 	if err != nil {
 		return fmt.Errorf("failed to load config: %w", err)
 	}
-
-	// Override config from flags
-	if mode, _ := cmd.Flags().GetString("mode"); mode != "auto" {
-		cfg.Mode = mode
-	}
-	if fix, _ := cmd.Flags().GetBool("fix"); fix {
-		cfg.Agent.AutoFix = true
-	}
-	if dryRun, _ := cmd.Flags().GetBool("dry-run"); dryRun {
-		cfg.DryRun = true
-	}
-	if output, _ := cmd.Flags().GetString("output"); output != "terminal" {
-		cfg.Output = output
-	}
-	if maxRetries, _ := cmd.Flags().GetInt("max-retries"); maxRetries != 3 {
-		cfg.Agent.MaxRetries = maxRetries
-	}
-	if concurrency, _ := cmd.Flags().GetInt("concurrency"); concurrency != 4 {
-		cfg.Agent.Concurrency = concurrency
+	if err := applyRunOverrides(cmd, cfg); err != nil {
+		return err
 	}
 
-	// Override provider from persistent flags
-	if p := viper.GetString("provider"); p != "" && p != "auto" {
-		cfg.DefaultProvider = p
-	}
-	if m := viper.GetString("model"); m != "" {
-		if cfg.Providers[cfg.DefaultProvider] == nil {
-			cfg.Providers[cfg.DefaultProvider] = &config.ProviderConfig{}
-		}
-		cfg.Providers[cfg.DefaultProvider].Model = m
-	}
-	if bu := viper.GetString("base_url"); bu != "" {
-		if cfg.Providers[cfg.DefaultProvider] == nil {
-			cfg.Providers[cfg.DefaultProvider] = &config.ProviderConfig{}
-		}
-		cfg.Providers[cfg.DefaultProvider].BaseURL = bu
-	}
-
-	// Initialize provider
-	provider, err := providers.New(cfg)
+	provider, err := initProvider(cfg)
 	if err != nil {
-		return fmt.Errorf("failed to initialize provider: %w", err)
+		return err
 	}
 
 	fmt.Printf("Using provider: %s\n", provider.Name())
 
-	// Detect runner
-	mode := cfg.Mode
-	if mode == "auto" || mode == "" {
-		detected, err := runners.Detect(absPath)
-		if err != nil {
-			return fmt.Errorf("failed to detect runner: %w", err)
-		}
-		mode = detected
+	targetName, _ := cmd.Flags().GetString("target")
+	if targetName == "" && len(args) > 0 {
+		targetName = args[0]
 	}
-	fmt.Printf("Test mode: %s\n", mode)
-	fmt.Printf("Target path: %s\n", absPath)
+	if targetName != "" {
+		if target, ok := resolveRunTarget(targetName); ok {
+			return runSavedTarget(cmd, cfg, provider, target)
+		}
+	}
 
-	// Create agent
+	targetPath := "."
+	if len(args) > 0 {
+		targetPath = args[0]
+	}
+	absPath, err := resolvePath(targetPath)
+	if err != nil {
+		return err
+	}
+
 	a := agent.New(agent.Config{
 		Provider:    provider,
 		Path:        absPath,
-		Mode:        mode,
+		Mode:        cfg.Mode,
 		MaxRetries:  cfg.Agent.MaxRetries,
 		Concurrency: cfg.Agent.Concurrency,
 		AutoFix:     cfg.Agent.AutoFix,
@@ -141,6 +91,72 @@ func runTests(cmd *cobra.Command, args []string) error {
 		outputFmt = "terminal"
 	}
 
+	return writeRunOutput(outputFmt, result)
+}
+
+func runSavedTarget(cmd *cobra.Command, cfg *config.Config, provider providers.Provider, target *catalog.Target) error {
+	setName, _ := cmd.Flags().GetString("scenario-set")
+	if setName == "" {
+		setName = target.ScenarioSet
+	}
+	if setName == "" {
+		setName = "default"
+	}
+
+	scenarioSet, err := catalog.LoadScenarioSet(target.Name, setName)
+	if err != nil {
+		return fmt.Errorf("load scenario set %q: %w", setName, err)
+	}
+
+	assumeYes, _ := cmd.Flags().GetBool("yes")
+	if !scenarioSet.Approved && !assumeYes {
+		fmt.Printf("Scenario set %q for target %q is still a draft.\n", scenarioSet.Name, target.Name)
+		approved, err := promptConfirm("Continue with this draft scenario set?", false)
+		if err != nil {
+			return err
+		}
+		if !approved {
+			return fmt.Errorf("run cancelled; approve it first with 'suitest scenario approve %s %s'", target.Name, scenarioSet.Name)
+		}
+	}
+	ok, err := confirmSavedRun(context.Background(), target, scenarioSet, assumeYes)
+	if err != nil {
+		return err
+	}
+	if !ok {
+		fmt.Println("Run cancelled.")
+		return nil
+	}
+
+	runMode := scenarioSet.Mode
+	if cfg.Mode != "" && cfg.Mode != "auto" {
+		runMode = cfg.Mode
+	}
+
+	a := agent.New(agent.Config{
+		Provider:    provider,
+		Path:        target.Path,
+		Mode:        runMode,
+		MaxRetries:  cfg.Agent.MaxRetries,
+		Concurrency: cfg.Agent.Concurrency,
+		AutoFix:     cfg.Agent.AutoFix,
+		DryRun:      cfg.DryRun,
+		TargetName:  target.Name,
+		TargetType:  target.Type,
+		EntryURL:    target.URL,
+		SeedCurl:    target.Curl,
+		Expectation: target.Expectation,
+		Plans:       scenarioSet.Plans,
+	})
+
+	result, err := a.Run(context.Background())
+	if err != nil {
+		return fmt.Errorf("agent run failed: %w", err)
+	}
+	return writeRunOutput(cfg.Output, result)
+}
+
+func writeRunOutput(outputFmt string, result *agent.RunResult) error {
 	switch outputFmt {
 	case "json":
 		reporter := report.NewJSONReporter()

@@ -30,6 +30,8 @@ go.work.sum
 # Built binary
 /suitest
 /dist/
+/.gocache/
+/.suitest/
 
 # Editor/IDE
 # .idea/
