@@ -1,5 +1,20 @@
 # Changelog
 
+## [1.1.0](https://github.com/mulhamna/suitest/compare/v1.0.3...v1.1.0) (2026-05-03)
+
+
+### Features
+
+* add scenario approval flow, tui, and persistent QA run history ([e3bb912](https://github.com/mulhamna/suitest/commit/e3bb912431104071259f1b51fa2e0ea1e5828786))
+
+## [1.0.3](https://github.com/mulhamna/suitest/compare/v1.0.2...v1.0.3) (2026-04-30)
+
+
+### Bug Fixes
+
+* **release:** publish package manifests to canonical paths ([a10fc3a](https://github.com/mulhamna/suitest/commit/a10fc3af346c353d497f1a1cfe3d1e2eff81683e))
+* **release:** publish package manifests to canonical paths ([61107b4](https://github.com/mulhamna/suitest/commit/61107b4d4aa983100e8822f819638a4be03c2350))
+
 ## [1.0.2](https://github.com/mulhamna/suitest/compare/v1.0.1...v1.0.2) (2026-04-30)
 
 

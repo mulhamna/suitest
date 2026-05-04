@@ -47,8 +47,18 @@ export ANTHROPIC_API_KEY=sk-ant-...   # or OPENAI_API_KEY, OPENROUTER_API_KEY
 # Initialize in your project
 suitest init
 
-# Run tests
-suitest run .
+# Save a reusable target
+suitest target create frontend-checkout \
+  --type frontend \
+  --path . \
+  --url http://localhost:3000 \
+  --expectation "User opens homepage, logs in, and reaches the dashboard"
+
+# Map scenarios once
+suitest scenario map frontend-checkout
+
+# Run the saved target
+suitest run frontend-checkout
 ```
 
 For web development mode:
@@ -88,7 +98,7 @@ suitest run . --provider openai --base-url https://my-endpoint.com/v1
 
 ### `suitest init`
 
-Scaffold `.suitest.yaml` in your project root.
+Run the first-time onboarding flow. `init` now asks for storage, operator mode, FE/BE target type, URL or curl seed, and expected success flow, then saves a reusable target.
 
 ```bash
 suitest init
@@ -96,12 +106,14 @@ suitest init
 
 ### `suitest run [path]`
 
-Run the full agent loop: discover → plan → generate → execute → fix → report.
+Run the full agent loop. You can run an ad-hoc path or a saved target.
 
 ```bash
 suitest run .
 suitest run ./src --mode browser
 suitest run ./api --mode api --provider claude
+suitest run frontend-checkout
+suitest run frontend-checkout --scenario-set smoke
 suitest run . --dry-run          # show plan only
 suitest run . --fix              # auto-apply AI fixes to source
 ```
@@ -117,6 +129,46 @@ suitest run . --fix              # auto-apply AI fixes to source
 | `--output` | terminal | `terminal`, `json`, `markdown` |
 | `--max-retries` | 3 | Fix retry attempts per test |
 | `--concurrency` | 4 | Parallel test runners |
+| `--target` | empty | Saved target name to run |
+| `--scenario-set` | target default | Saved scenario set for target runs |
+| `--yes` | false | Skip confirmation for saved target runs |
+
+### `suitest target`
+
+Create and reuse explicit test targets so QA can rerun the same thing tomorrow without re-entering URL or curl input.
+
+```bash
+suitest target create frontend-checkout --type frontend --path . --url http://localhost:3000 --expectation "User logs in successfully"
+suitest target list
+```
+
+### `suitest scenario`
+
+Map and persist scenario sets separately from run results. Generated scenarios can stay as drafts until QA approves them.
+
+```bash
+suitest scenario map frontend-checkout
+suitest scenario approve frontend-checkout default
+suitest scenario list frontend-checkout
+```
+
+### `suitest tui`
+
+Open a lightweight interactive terminal view for browsing saved targets, scenario sets, and run history.
+
+```bash
+suitest tui
+```
+
+### `suitest settings`
+
+View or update global operating preferences separately from targets and run results.
+
+```bash
+suitest settings
+suitest settings set storage.driver json
+suitest settings set operator.mode native
+```
 
 ### `suitest report`
 
@@ -124,6 +176,8 @@ Print or export the last run report.
 
 ```bash
 suitest report
+suitest report history
+suitest report show 20260501-153000
 suitest report --format json > report.json
 suitest report --format markdown > REPORT.md
 ```
@@ -156,6 +210,13 @@ Global config at `~/.suitest/config.yaml`:
 ```yaml
 default_provider: openrouter
 
+storage:
+  driver: json
+  # path: ~/.suitest/suitest.db   # optional when using sqlite
+
+operator:
+  mode: native
+
 providers:
   claude:
     api_key: "${ANTHROPIC_API_KEY}"
@@ -178,6 +239,10 @@ agent:
   concurrency: 4
   auto_fix: false
 ```
+
+Storage behavior:
+- `json`: targets/scenarios are stored as local files under `~/.suitest/`, and the latest run report is saved to `~/.suitest/last-report.json`
+- `sqlite`: targets, scenario sets, and the latest run report are stored in `~/.suitest/suitest.db` unless `storage.path` overrides it
 
 Project-level override at `.suitest.yaml`:
 

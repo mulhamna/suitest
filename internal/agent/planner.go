@@ -1,6 +1,7 @@
 package agent
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"fmt"
@@ -9,7 +10,6 @@ import (
 	"runtime"
 	"strings"
 	"text/template"
-	"bytes"
 
 	"github.com/mulhamna/suitest/internal/providers"
 )
@@ -80,11 +80,15 @@ func buildPlanPrompt(discovery *ProjectDiscovery, mode string) (string, error) {
 	}
 
 	data := map[string]interface{}{
-		"Language":  discovery.Language,
-		"Mode":      mode,
-		"Files":     strings.Join(discovery.Files, "\n"),
-		"Summary":   discovery.Summary,
-		"FileCount": len(discovery.Files),
+		"Language":    discovery.Language,
+		"Mode":        mode,
+		"Files":       strings.Join(discovery.Files, "\n"),
+		"Summary":     discovery.Summary,
+		"FileCount":   len(discovery.Files),
+		"EntryURL":    discovery.EntryURL,
+		"SeedCurl":    discovery.SeedCurl,
+		"TargetType":  discovery.TargetType,
+		"Expectation": discovery.Expectation,
 	}
 
 	var buf bytes.Buffer
@@ -101,6 +105,10 @@ func buildFallbackPlanPrompt(discovery *ProjectDiscovery, mode string) string {
 
 Project summary: %s
 Test mode: %s
+Target type: %s
+Entry URL: %s
+Sample curl: %s
+Expected success flow: %s
 Source files:
 %s
 
@@ -120,7 +128,7 @@ Respond ONLY with a JSON array of test cases. Example:
   }
 ]
 
-Generate 3-8 test cases appropriate for this project.`, discovery.Language, discovery.Summary, mode, fileList, mode, mode)
+Generate 3-8 test cases appropriate for this project.`, discovery.Language, discovery.Summary, mode, discovery.TargetType, discovery.EntryURL, discovery.SeedCurl, discovery.Expectation, fileList, mode, mode)
 }
 
 func parsePlanResponse(response, mode string) ([]TestPlan, error) {

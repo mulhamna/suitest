@@ -13,6 +13,7 @@ import (
 	"github.com/mulhamna/suitest/internal/providers"
 	"github.com/mulhamna/suitest/internal/report"
 	"github.com/mulhamna/suitest/internal/runners"
+	"github.com/mulhamna/suitest/internal/storage"
 )
 
 // Handlers implements the MCP tool handlers.
@@ -138,19 +139,13 @@ func (h *Handlers) handleGetReport(ctx context.Context, args json.RawMessage) (i
 		a.Format = "json"
 	}
 
-	home, err := os.UserHomeDir()
-	if err != nil {
-		return nil, err
-	}
-
-	data, err := os.ReadFile(filepath.Join(home, ".suitest", "last-report.json"))
+	data, err := storage.LoadLastReportData()
 	if err != nil {
 		return nil, fmt.Errorf("no report found: %w", err)
 	}
-
 	var result agent.RunResult
 	if err := json.Unmarshal(data, &result); err != nil {
-		return nil, err
+		return nil, fmt.Errorf("parse report: %w", err)
 	}
 
 	switch a.Format {

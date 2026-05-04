@@ -25,6 +25,7 @@ func (r *MarkdownReporter) Write(w io.Writer, result *agent.RunResult) error {
 	fmt.Fprintln(w)
 	fmt.Fprintln(w, "| Field | Value |")
 	fmt.Fprintln(w, "|-------|-------|")
+	fmt.Fprintf(w, "| Run ID | `%s` |\n", result.RunID)
 	fmt.Fprintf(w, "| Path | `%s` |\n", result.Path)
 	fmt.Fprintf(w, "| Mode | %s |\n", result.Mode)
 	fmt.Fprintf(w, "| Provider | %s |\n", result.Provider)

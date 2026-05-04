@@ -30,6 +30,9 @@ const (
 func (r *TerminalReporter) Write(w io.Writer, result *agent.RunResult) error {
 	fmt.Fprintln(w)
 	fmt.Fprintf(w, "%s%s=== suitest Report ===%s\n", colorBold, colorBlue, colorReset)
+	if result.RunID != "" {
+		fmt.Fprintf(w, "Run ID:   %s\n", result.RunID)
+	}
 	fmt.Fprintf(w, "Path:     %s\n", result.Path)
 	fmt.Fprintf(w, "Mode:     %s\n", result.Mode)
 	fmt.Fprintf(w, "Provider: %s\n", result.Provider)

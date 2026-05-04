@@ -20,6 +20,12 @@ type Config struct {
 	Concurrency int
 	AutoFix     bool
 	DryRun      bool
+	TargetName  string
+	TargetType  string
+	EntryURL    string
+	SeedCurl    string
+	Expectation string
+	Plans       []TestPlan
 }
 
 // TestResult holds the result for a single planned test.
@@ -32,6 +38,7 @@ type TestResult struct {
 
 // RunResult is the overall result of an agent run.
 type RunResult struct {
+	RunID      string       `json:"run_id"`
 	StartedAt  time.Time    `json:"started_at"`
 	FinishedAt time.Time    `json:"finished_at"`
 	Path       string       `json:"path"`
@@ -73,15 +80,20 @@ func buildRunner(mode, path string) runners.Runner {
 
 // ProjectDiscovery holds information about the discovered project.
 type ProjectDiscovery struct {
-	Path      string
-	Language  string
-	Framework string
-	Files     []string
-	Summary   string
+	Path        string
+	Language    string
+	Framework   string
+	Files       []string
+	Summary     string
+	TargetName  string
+	TargetType  string
+	EntryURL    string
+	SeedCurl    string
+	Expectation string
 }
 
-// discoverProject walks the project directory to understand its structure.
-func discoverProject(root string) (*ProjectDiscovery, error) {
+// DiscoverProject walks the project directory to understand its structure.
+func DiscoverProject(root string) (*ProjectDiscovery, error) {
 	d := &ProjectDiscovery{Path: root}
 
 	// Walk directory for key files

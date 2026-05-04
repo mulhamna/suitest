@@ -31,6 +31,8 @@ go.work.sum
 /suitest
 /dist/
 /bin/
+/.gocache/
+/.suitest/
 
 # Frontend artifacts
 web/node_modules/
