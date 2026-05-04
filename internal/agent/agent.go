@@ -2,16 +2,13 @@ package agent
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"os"
 	"path/filepath"
-	"sync"
 	"time"
 
 	"github.com/mulhamna/suitest/internal/providers"
 	"github.com/mulhamna/suitest/internal/runners"
-	"github.com/mulhamna/suitest/internal/storage"
 )
 
 // Config holds agent configuration.
@@ -56,123 +53,17 @@ type RunResult struct {
 
 // Agent orchestrates the full test generation and execution loop.
 type Agent struct {
-	cfg     Config
-	planner *Planner
-	runner  runners.Runner
+	service *RunnerService
 }
 
 // New creates a new Agent.
 func New(cfg Config) *Agent {
-	if cfg.MaxRetries == 0 {
-		cfg.MaxRetries = 3
-	}
-	if cfg.Concurrency == 0 {
-		cfg.Concurrency = 4
-	}
-
-	return &Agent{
-		cfg:     cfg,
-		planner: NewPlanner(cfg.Provider),
-	}
+	return &Agent{service: NewRunnerService(cfg, nil)}
 }
 
 // Run executes the full agent loop and returns a RunResult.
 func (a *Agent) Run(ctx context.Context) (*RunResult, error) {
-	result := &RunResult{
-		RunID:     time.Now().Format("20060102-150405"),
-		StartedAt: time.Now(),
-		Path:      a.cfg.Path,
-		Mode:      a.cfg.Mode,
-		Provider:  a.cfg.Provider.Name(),
-		DryRun:    a.cfg.DryRun,
-	}
-
-	// Step 1: Discover project
-	fmt.Printf("\nDiscovering project at %s...\n", a.cfg.Path)
-	discovery, err := DiscoverProject(a.cfg.Path)
-	if err != nil {
-		return nil, fmt.Errorf("project discovery failed: %w", err)
-	}
-	discovery.TargetName = a.cfg.TargetName
-	discovery.TargetType = a.cfg.TargetType
-	discovery.EntryURL = a.cfg.EntryURL
-	discovery.SeedCurl = a.cfg.SeedCurl
-	discovery.Expectation = a.cfg.Expectation
-	if discovery.Expectation != "" {
-		discovery.Summary = fmt.Sprintf("%s | expected flow: %s", discovery.Summary, discovery.Expectation)
-	}
-	if discovery.EntryURL != "" {
-		discovery.Summary = fmt.Sprintf("%s | url: %s", discovery.Summary, discovery.EntryURL)
-	}
-	fmt.Printf("Project summary: %s\n", discovery.Summary)
-
-	// Step 2: Generate test plan
-	plans := a.cfg.Plans
-	if len(plans) == 0 {
-		fmt.Println("\nGenerating test plan via LLM...")
-		plans, err = a.planner.Plan(ctx, discovery, a.cfg.Mode)
-		if err != nil {
-			return nil, fmt.Errorf("test planning failed: %w", err)
-		}
-	} else {
-		fmt.Println("\nUsing saved scenario set...")
-	}
-	fmt.Printf("Generated %d test cases\n", len(plans))
-
-	if a.cfg.DryRun {
-		fmt.Println("\nDry run — test plan:")
-		for i, p := range plans {
-			fmt.Printf("  %d. %s\n", i+1, p.Name)
-			fmt.Printf("     %s\n", p.Description)
-		}
-		result.FinishedAt = time.Now()
-		result.TotalTests = len(plans)
-		return result, nil
-	}
-
-	// Step 3: Initialize runner
-	a.runner = buildRunner(a.cfg.Mode, a.cfg.Path)
-
-	// Step 4: Execute tests concurrently
-	fmt.Printf("\nExecuting %d tests (concurrency: %d)...\n", len(plans), a.cfg.Concurrency)
-
-	testResults := make([]TestResult, len(plans))
-	sem := make(chan struct{}, a.cfg.Concurrency)
-	var wg sync.WaitGroup
-
-	for i, plan := range plans {
-		wg.Add(1)
-		go func(idx int, p TestPlan) {
-			defer wg.Done()
-			sem <- struct{}{}
-			defer func() { <-sem }()
-
-			executor := NewExecutor(a.cfg.Provider, a.runner, a.cfg.MaxRetries, a.cfg.AutoFix)
-			tr := executor.Execute(ctx, p, discovery)
-			testResults[idx] = tr
-		}(i, plan)
-	}
-
-	wg.Wait()
-
-	// Aggregate results
-	result.Tests = testResults
-	result.TotalTests = len(testResults)
-	for _, tr := range testResults {
-		if tr.Passed {
-			result.Passed++
-		} else {
-			result.Failed++
-		}
-	}
-
-	result.FinishedAt = time.Now()
-
-	// Save report
-	data, _ := json.Marshal(result)
-	storage.SaveReport(data)
-
-	return result, nil
+	return a.service.Run(ctx)
 }
 
 // buildRunner creates the appropriate runner based on mode.

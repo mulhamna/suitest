@@ -61,6 +61,13 @@ suitest scenario map frontend-checkout
 suitest run frontend-checkout
 ```
 
+For web development mode:
+
+```bash
+make setup
+make dev
+```
+
 ---
 
 ## Providers
@@ -182,6 +189,16 @@ Start the MCP server for IDE integration (Claude Code, Cursor, Windsurf).
 ```bash
 suitest serve
 suitest serve --port 3100
+```
+
+### `suitest web`
+
+Start the local web API for the upcoming Svelte web UI.
+
+```bash
+make dev          # API + Svelte dev server
+make dev-backend  # API only
+suitest web --port 4020
 ```
 
 ---
