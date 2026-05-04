@@ -2,14 +2,11 @@ package agent
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"os"
 	"path/filepath"
-	"sync"
 	"time"
 
-	"github.com/mulhamna/suitest/internal/config"
 	"github.com/mulhamna/suitest/internal/providers"
 	"github.com/mulhamna/suitest/internal/runners"
 )
@@ -27,128 +24,39 @@ type Config struct {
 
 // TestResult holds the result for a single planned test.
 type TestResult struct {
-	Plan    TestPlan           `json:"plan"`
+	Plan    TestPlan            `json:"plan"`
 	Results []runners.RunResult `json:"results"`
-	Passed  bool               `json:"passed"`
-	Retries int                `json:"retries"`
+	Passed  bool                `json:"passed"`
+	Retries int                 `json:"retries"`
 }
 
 // RunResult is the overall result of an agent run.
 type RunResult struct {
-	StartedAt   time.Time    `json:"started_at"`
-	FinishedAt  time.Time    `json:"finished_at"`
-	Path        string       `json:"path"`
-	Mode        string       `json:"mode"`
-	Provider    string       `json:"provider"`
-	Tests       []TestResult `json:"tests"`
-	TotalTests  int          `json:"total_tests"`
-	Passed      int          `json:"passed"`
-	Failed      int          `json:"failed"`
-	DryRun      bool         `json:"dry_run"`
+	StartedAt  time.Time    `json:"started_at"`
+	FinishedAt time.Time    `json:"finished_at"`
+	Path       string       `json:"path"`
+	Mode       string       `json:"mode"`
+	Provider   string       `json:"provider"`
+	Tests      []TestResult `json:"tests"`
+	TotalTests int          `json:"total_tests"`
+	Passed     int          `json:"passed"`
+	Failed     int          `json:"failed"`
+	DryRun     bool         `json:"dry_run"`
 }
 
 // Agent orchestrates the full test generation and execution loop.
 type Agent struct {
-	cfg     Config
-	planner *Planner
-	runner  runners.Runner
+	service *RunnerService
 }
 
 // New creates a new Agent.
 func New(cfg Config) *Agent {
-	if cfg.MaxRetries == 0 {
-		cfg.MaxRetries = 3
-	}
-	if cfg.Concurrency == 0 {
-		cfg.Concurrency = 4
-	}
-
-	return &Agent{
-		cfg:     cfg,
-		planner: NewPlanner(cfg.Provider),
-	}
+	return &Agent{service: NewRunnerService(cfg, nil)}
 }
 
 // Run executes the full agent loop and returns a RunResult.
 func (a *Agent) Run(ctx context.Context) (*RunResult, error) {
-	result := &RunResult{
-		StartedAt: time.Now(),
-		Path:      a.cfg.Path,
-		Mode:      a.cfg.Mode,
-		Provider:  a.cfg.Provider.Name(),
-		DryRun:    a.cfg.DryRun,
-	}
-
-	// Step 1: Discover project
-	fmt.Printf("\nDiscovering project at %s...\n", a.cfg.Path)
-	discovery, err := discoverProject(a.cfg.Path)
-	if err != nil {
-		return nil, fmt.Errorf("project discovery failed: %w", err)
-	}
-	fmt.Printf("Project summary: %s\n", discovery.Summary)
-
-	// Step 2: Generate test plan
-	fmt.Println("\nGenerating test plan via LLM...")
-	plans, err := a.planner.Plan(ctx, discovery, a.cfg.Mode)
-	if err != nil {
-		return nil, fmt.Errorf("test planning failed: %w", err)
-	}
-	fmt.Printf("Generated %d test cases\n", len(plans))
-
-	if a.cfg.DryRun {
-		fmt.Println("\nDry run — test plan:")
-		for i, p := range plans {
-			fmt.Printf("  %d. %s\n", i+1, p.Name)
-			fmt.Printf("     %s\n", p.Description)
-		}
-		result.FinishedAt = time.Now()
-		result.TotalTests = len(plans)
-		return result, nil
-	}
-
-	// Step 3: Initialize runner
-	a.runner = buildRunner(a.cfg.Mode, a.cfg.Path)
-
-	// Step 4: Execute tests concurrently
-	fmt.Printf("\nExecuting %d tests (concurrency: %d)...\n", len(plans), a.cfg.Concurrency)
-
-	testResults := make([]TestResult, len(plans))
-	sem := make(chan struct{}, a.cfg.Concurrency)
-	var wg sync.WaitGroup
-
-	for i, plan := range plans {
-		wg.Add(1)
-		go func(idx int, p TestPlan) {
-			defer wg.Done()
-			sem <- struct{}{}
-			defer func() { <-sem }()
-
-			executor := NewExecutor(a.cfg.Provider, a.runner, a.cfg.MaxRetries, a.cfg.AutoFix)
-			tr := executor.Execute(ctx, p, discovery)
-			testResults[idx] = tr
-		}(i, plan)
-	}
-
-	wg.Wait()
-
-	// Aggregate results
-	result.Tests = testResults
-	result.TotalTests = len(testResults)
-	for _, tr := range testResults {
-		if tr.Passed {
-			result.Passed++
-		} else {
-			result.Failed++
-		}
-	}
-
-	result.FinishedAt = time.Now()
-
-	// Save report
-	data, _ := json.Marshal(result)
-	config.SaveReport(data)
-
-	return result, nil
+	return a.service.Run(ctx)
 }
 
 // buildRunner creates the appropriate runner based on mode.
@@ -165,11 +73,11 @@ func buildRunner(mode, path string) runners.Runner {
 
 // ProjectDiscovery holds information about the discovered project.
 type ProjectDiscovery struct {
-	Path     string
-	Language string
+	Path      string
+	Language  string
 	Framework string
-	Files    []string
-	Summary  string
+	Files     []string
+	Summary   string
 }
 
 // discoverProject walks the project directory to understand its structure.

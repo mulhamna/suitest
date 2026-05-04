@@ -30,6 +30,12 @@ go.work.sum
 # Built binary
 /suitest
 /dist/
+/bin/
+
+# Frontend artifacts
+web/node_modules/
+web/.svelte-kit/
+web/build/
 
 # Editor/IDE
 # .idea/
