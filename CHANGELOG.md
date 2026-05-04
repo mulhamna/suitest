@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.2.0](https://github.com/mulhamna/suitest/compare/v1.1.0...v1.2.0) (2026-05-04)
+
+
+### Features
+
+* add web monorepo foundation ([21188f1](https://github.com/mulhamna/suitest/commit/21188f11d6007a1073a1ee917b1d26479d2834d2))
+* add web monorepo foundation ([ec0d2b9](https://github.com/mulhamna/suitest/commit/ec0d2b98aba9e70a68c1ebe7401483f2d1169f24))
+
 ## [1.1.0](https://github.com/mulhamna/suitest/compare/v1.0.3...v1.1.0) (2026-05-03)
 
 
